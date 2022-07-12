@@ -1,8 +1,8 @@
-FROM debian:stretch-slim
+FROM ubuntu:focal
 
 ARG BUNDLE_DIR
 
-RUN apt-get update && apt-get install -y ca-certificates curl unzip
+RUN apt-get update && apt-get install -y ca-certificates curl unzip libicu66
 RUN curl -L -O https://github.com/Azure/kubelogin/releases/download/v0.0.13/kubelogin-linux-amd64.zip
 RUN unzip kubelogin-linux-amd64.zip
 RUN mv ./bin/linux_amd64/kubelogin /usr/bin/ && \

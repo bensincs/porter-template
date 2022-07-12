@@ -110,47 +110,56 @@ install:
         name: "{{ bundle.parameters.iac_state_container_name }}"
         account-name: "{{ bundle.parameters.iac_state_storage_account_name }}"
         public-access: "off"
-  - terraform:
-      description: "Deploying IaC"
-      backendConfig:
-        resource_group_name: "{{ bundle.parameters.iac_state_resource_group_name }}"
-        storage_account_name: "{{ bundle.parameters.iac_state_storage_account_name }}"
-        container_name: "{{ bundle.parameters.iac_state_container_name }}"
-      vars:
-        location: "{{ bundle.parameters.azure_region }}"
-      outputs:
-        - name: cluster_name
-        - name: cluster_resource_group_name
   - az:
-      description: "Downloading Kubernetes credentials"
-      suppress-output: true
+      description: "Bicep deployment"
       arguments:
-        - "aks"
-        - "get-credentials"
+        - "deployment"
+        - "sub"
+        - "create"
       flags:
-        name: "{{ bundle.outputs.cluster_name }}"
-        resource-group: "{{ bundle.outputs.cluster_resource_group_name }}"
-  - exec:
-      description: "Kube Login"
-      command: kubelogin # The command to run, must be on the PATH
-      arguments: # arguments to pass to the command
-        - convert-kubeconfig
-      flags: # flags to pass to the command, porter determines if it is a long (--flag) or short flag (-f)
-        l: azurecli
+        template-file: "bicep/main.bicep"
+        location: "{{ bundle.parameters.azure_region }}"
+  # - terraform:
+  #     description: "Deploying IaC"
+  #     backendConfig:
+  #       resource_group_name: "{{ bundle.parameters.iac_state_resource_group_name }}"
+  #       storage_account_name: "{{ bundle.parameters.iac_state_storage_account_name }}"
+  #       container_name: "{{ bundle.parameters.iac_state_container_name }}"
+  #     vars:
+  #       location: "{{ bundle.parameters.azure_region }}"
+  #     outputs:
+  #       - name: cluster_name
+  #       - name: cluster_resource_group_name
+  # - az:
+  #     description: "Downloading Kubernetes credentials"
+  #     suppress-output: true
+  #     arguments:
+  #       - "aks"
+  #       - "get-credentials"
+  #     flags:
+  #       name: "{{ bundle.outputs.cluster_name }}"
+  #       resource-group: "{{ bundle.outputs.cluster_resource_group_name }}"
+  # - exec:
+  #     description: "Kube Login"
+  #     command: kubelogin # The command to run, must be on the PATH
+  #     arguments: # arguments to pass to the command
+  #       - convert-kubeconfig
+  #     flags: # flags to pass to the command, porter determines if it is a long (--flag) or short flag (-f)
+  #       l: azurecli
 
-  - kubernetes:
-      description: "Creating Kubernetes namespaces"
-      manifests:
-        - "kubernetes/namespaces.yml"
-      validate: true
-      wait: true
+  # - kubernetes:
+  #     description: "Creating Kubernetes namespaces"
+  #     manifests:
+  #       - "kubernetes/namespaces.yml"
+  #     validate: true
+  #     wait: true
 
-  - helm3:
-      description: "Installing NGINX Chart"
-      namespace: applications
-      chart: charts/nginx
-      version: "1.0.0"
-      name: "{{ installation.name }}"
+  # - helm3:
+  #     description: "Installing NGINX Chart"
+  #     namespace: applications
+  #     chart: charts/nginx
+  #     version: "1.0.0"
+  #     name: "{{ installation.name }}"
 
 uninstall:
   - terraform:
