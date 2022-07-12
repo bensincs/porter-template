@@ -119,6 +119,15 @@ install:
       flags:
         template-file: "bicep/main.bicep"
         location: "{{ bundle.parameters.azure_region }}"
+  - az:
+      description: "ARM deployment"
+      arguments:
+        - "deployment"
+        - "sub"
+        - "create"
+      flags:
+        template-file: "arm/main.json"
+        location: "{{ bundle.parameters.azure_region }}"
   # - terraform:
   #     description: "Deploying IaC"
   #     backendConfig:
