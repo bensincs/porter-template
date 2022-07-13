@@ -78,56 +78,47 @@ install:
         - "set"
       flags:
         subscription: "{{ bundle.parameters.azure_subscription_id }}"
-  - az:
-      description: "Creating Azure Resource Group for IaC"
-      suppress-output: true
-      arguments:
-        - "group"
-        - "create"
-      flags:
-        name: "{{ bundle.parameters.iac_state_resource_group_name }}"
-        location: "{{ bundle.parameters.azure_region }}"
-  - az:
-      description: "Creating Storage Account for IaC state"
-      suppress-output: true
-      arguments:
-        - "storage"
-        - "account"
-        - "create"
-      flags:
-        name: "{{ bundle.parameters.iac_state_storage_account_name }}"
-        location: "{{ bundle.parameters.azure_region }}"
-        resource-group: "{{ bundle.parameters.iac_state_resource_group_name }}"
-        sku: "Standard_LRS"
-  - az:
-      description: "Creating Blob Container for IaC state"
-      suppress-output: true
-      arguments:
-        - "storage"
-        - "container"
-        - "create"
-      flags:
-        name: "{{ bundle.parameters.iac_state_container_name }}"
-        account-name: "{{ bundle.parameters.iac_state_storage_account_name }}"
-        public-access: "off"
-  - az:
-      description: "Bicep deployment"
-      arguments:
-        - "deployment"
-        - "sub"
-        - "create"
-      flags:
-        template-file: "bicep/main.bicep"
-        location: "{{ bundle.parameters.azure_region }}"
-  - az:
-      description: "ARM deployment"
-      arguments:
-        - "deployment"
-        - "sub"
-        - "create"
-      flags:
-        template-file: "arm/main.json"
-        location: "{{ bundle.parameters.azure_region }}"
+  # - az:
+  #     description: "Creating Azure Resource Group for IaC"
+  #     suppress-output: true
+  #     arguments:
+  #       - "group"
+  #       - "create"
+  #     flags:
+  #       name: "{{ bundle.parameters.iac_state_resource_group_name }}"
+  #       location: "{{ bundle.parameters.azure_region }}"
+  # - az:
+  #     description: "Creating Storage Account for IaC state"
+  #     suppress-output: true
+  #     arguments:
+  #       - "storage"
+  #       - "account"
+  #       - "create"
+  #     flags:
+  #       name: "{{ bundle.parameters.iac_state_storage_account_name }}"
+  #       location: "{{ bundle.parameters.azure_region }}"
+  #       resource-group: "{{ bundle.parameters.iac_state_resource_group_name }}"
+  #       sku: "Standard_LRS"
+  # - az:
+  #     description: "Creating Blob Container for IaC state"
+  #     suppress-output: true
+  #     arguments:
+  #       - "storage"
+  #       - "container"
+  #       - "create"
+  #     flags:
+  #       name: "{{ bundle.parameters.iac_state_container_name }}"
+  #       account-name: "{{ bundle.parameters.iac_state_storage_account_name }}"
+  #       public-access: "off"
+  # - az:
+  #     description: "ARM deployment"
+  #     arguments:
+  #       - "deployment"
+  #       - "sub"
+  #       - "create"
+  #     flags:
+  #       template-file: "arm/main.json"
+  #       location: "{{ bundle.parameters.azure_region }}"
   # - terraform:
   #     description: "Deploying IaC"
   #     backendConfig:
@@ -169,16 +160,61 @@ install:
   #     chart: charts/nginx
   #     version: "1.0.0"
   #     name: "{{ installation.name }}"
+  - az:
+      description: "Create Resource Group To Perform Bicep Deployment"
+      arguments:
+        - "group"
+        - "create"
+      flags:
+        name: "{{ installation.name }}"
+        location: "{{ bundle.parameters.azure_region }}"
+  - az:
+      description: "Bicep deployment"
+      arguments:
+        - "deployment"
+        - "group"
+        - "create"
+      flags:
+        resource-group: "{{ installation.name }}"
+        template-file: "bicep/main.bicep"
+        parameters: "location=uksouth"
 
 uninstall:
-  - terraform:
-      description: "Destroying IaC"
-      backendConfig:
-        resource_group_name: "{{ bundle.parameters.iac_state_resource_group_name }}"
-        storage_account_name: "{{ bundle.parameters.iac_state_storage_account_name }}"
-        container_name: "{{ bundle.parameters.iac_state_container_name }}"
-      vars:
-        location: "{{ bundle.parameters.azure_region }}"
-      outputs:
-        - name: cluster_name
-        - name: cluster_resource_group_name
+  - az:
+      description: "Authenticating with Azure"
+      suppress-output: true
+      arguments:
+        - "login"
+      flags:
+        service-principal:
+        allow-no-subscriptions:
+        username: "{{ bundle.credentials.azure_sp_client_id }}"
+        password: "{{ bundle.credentials.azure_sp_client_secret }}"
+        tenant: "{{ bundle.credentials.azure_tenant_id }}"
+  - az:
+      description: "Selecting desired Azure subscription"
+      suppress-output: true
+      arguments:
+        - "account"
+        - "set"
+      flags:
+        subscription: "{{ bundle.parameters.azure_subscription_id }}"
+  - az:
+      description: "Delete Resource Group Containing Bicep Deployment"
+      arguments:
+        - "group"
+        - "delete"
+        - "--yes"
+      flags:
+        resource-group: "{{ installation.name }}"
+  # - terraform:
+  #     description: "Destroying IaC"
+  #     backendConfig:
+  #       resource_group_name: "{{ bundle.parameters.iac_state_resource_group_name }}"
+  #       storage_account_name: "{{ bundle.parameters.iac_state_storage_account_name }}"
+  #       container_name: "{{ bundle.parameters.iac_state_container_name }}"
+  #     vars:
+  #       location: "{{ bundle.parameters.azure_region }}"
+  #     outputs:
+  #       - name: cluster_name
+  #       - name: cluster_resource_group_name
